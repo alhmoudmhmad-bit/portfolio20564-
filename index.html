@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منيو الحلويات الفاخرة</title>
+    <!-- خط عربي أنيق -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- مكتبات Firebase الإصدار القديم المستقر -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        :root {
+            --primary: #d4af37; /* ذهبي فاخر */
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --light: #f8fafc;
+            --accent: #10b981; /* أخضر للواتساب */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            color: var(--light);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* --- شاشة البداية المتحركة --- */
+        #intro-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: #0f172a;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeOutIntro 0.8s ease 2.5s forwards;
+        }
+
+        .intro-logo {
+            font-size: 3.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            animation: pulseZoom 1.5s infinite alternate;
+        }
+
+        .intro-title {
+            font-size: 2.2rem;
+            font-weight: 900;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: slideUp 1s ease;
+        }
+
+        @keyframes pulseZoom {
+            0% { transform: scale(1); text-shadow: 0 0 10px rgba(212,175,55,0.2); }
+            100% { transform: scale(1.1); text-shadow: 0 0 30px rgba(212,175,55,0.6); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeOutIntro {
+            to { opacity: 0; visibility: hidden; }
+        }
+
+        /* --- الهيدر العلوي --- */
+        header {
+            text-align: center;
+            padding: 40px 20px 20px;
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 2px solid rgba(212,175,55,0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        /* أزرار الإدارة والسلة العائمة */
+        .floating-btns {
+            position: fixed;
+            bottom: 25px;
+            left: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 1000;
+        }
+
+        .float-btn {
+            background-color: var(--primary);
+            color: #0f172a;
+            border: none;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            font-size: 1.4rem;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+            transition: transform 0.3s, background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .float-btn:hover {
+            transform: scale(1.1);
+            background-color: #fff;
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.8rem;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* --- شبكة الأصناف --- */
+        .menu-container {
+            max-width: 1300px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+
+        .menu-card {
+            background-color: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 35px rgba(212,175,55,0.2);
+            border-color: rgba(212,175,55,0.4);
+        }
+
+        .card-img-wrapper {
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .card-img-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .menu-card:hover .card-img-wrapper img {
+            transform: scale(1.1);
+        }
+
+        .card-content {
+            padding: 20px;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .card-desc {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+
+        .card-footer-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .card-price {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: var(--primary);
+        }
+
+        .add-to-cart-btn {
+            background: linear-gradient(135deg, var(--primary), #b89728);
+            color: #0f172a;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .add-to-cart-btn:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+
+        /* --- النوافذ المنبثقة (Modals) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-box {
+            background-color: #1e293b;
+            border: 2px solid var(--primary);
+            width: 90%;
+            max-width: 600px;
+            max-height: 85vh;
+            border-radius: 15px;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+            color: #f8fafc;
+        }
+
+        .modal-box h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* سلة الطلبات */
+        .cart-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+
+        .whatsapp-order-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            background: #25d366;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: 0.3s;
+            text-decoration: none;
+        }
+
+        .whatsapp-order-btn:hover {
+            background: #20ba5a;
+        }
+
+        /* لوحة التحكم والإدارة */
+        .admin-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+
+        .admin-item-row input {
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: var(--primary);
+            padding: 6px 10px;
+            border-radius: 5px;
+            width: 100px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .save-changes-btn {
+            display: block;
+            width: 100%;
+            background: var(--primary);
+            color: #0f172a;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: 0.3s;
+        }
+
+        .save-changes-btn:hover {
+            background: #fff;
+        }
+
+        #password-box {
+            text-align: center;
+        }
+
+        #password-box input {
+            width: 80%;
+            padding: 12px;
+            margin: 15px 0;
+            background: #0f172a;
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            color: #fff;
+            text-align: center;
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- شاشة البداية المتحركة -->
+    <div id="intro-screen">
+        <div class="intro-logo">
+            <i class="fa-solid fa-cake-candles"></i>
+        </div>
+        <div class="intro-title">حلويات الملكية الفاخرة</div>
+    </div>
+
+    <!-- الهيدر -->
+    <header>
+        <h1><i class="fa-solid fa-cookie-bite"></i> قائمة الحلويات الفاخرة</h1>
+        <p>اختر ما يطيب لك وأرسل طلبك بكل سهولة عبر الواتساب</p>
+    </header>
+
+    <!-- الأزرار العائمة (الإدارة + السلة) -->
+    <div class="floating-btns">
+        <button class="float-btn" onclick="openCartModal()" title="سلة الطلبات">
+            <i class="fa-solid fa-cart-shopping"></i>
+            <span class="cart-badge" id="cartCount">0</span>
+        </button>
+        <button class="float-btn" onclick="openAdminLogin()" title="لوحة الإدارة">
+            <i class="fa-solid fa-lock"></i>
+        </button>
+    </div>
+
+    <!-- شبكة الأصناف -->
+    <div class="menu-container" id="menuGrid">
+        <!-- الأصناف ستجلب تلقائياً -->
+    </div>
+
+    <!-- نافذة سلة الطلبات -->
+    <div class="modal-overlay" id="cartModal">
+        <div class="modal-box">
+            <button class="close-modal" onclick="closeCartModal()"><i class="fa-solid fa-xmark"></i></button>
+            <h2>سلة الطلبات</h2>
+            <div id="cartItemsList">
+                <p style="text-align:center; color:#94a3b8;">السلة فارغة حالياً</p>
+            </div>
+            <div id="cartFooter" style="display:none;">
+                <a id="whatsappBtn" href="#" target="_blank" class="whatsapp-order-btn">
+                    <i class="fa-brands fa-whatsapp" style="font-size: 1.4rem;"></i> إرسال الطلب عبر واتساب
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة لوحة الإدارة -->
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal-box">
+            <button class="close-modal" onclick="closeAdminModal()"><i class="fa-solid fa-xmark"></i></button>
+            
+            <div id="password-section">
+                <h2>تسجيل دخول الإدارة</h2>
+                <div id="password-box">
+                    <p style="color: #94a3b8; margin-bottom: 10px;">كلمة المرور الافتراضية هي: <b>1234</b></p>
+                    <input type="password" id="adminPassInput" placeholder="أدخل كلمة السر">
+                    <br>
+                    <button class="save-changes-btn" onclick="checkPassword()">دخول</button>
+                </div>
+            </div>
+
+            <div id="edit-section" style="display: none;">
+                <h2>تعديل أسعار الأصناف (سحابياً)</h2>
+                <div id="adminItemsList"></div>
+                <button class="save-changes-btn" onclick="savePrices()">حفظ التعديلات</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // إعدادات الـ Firebase الخاصة بك
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXqun7oMWJ1CIhQehcyyJONlGau3P0nRg",
+            authDomain: "dddsar-8b029.firebaseapp.com",
+            projectId: "dddsar-8b029",
+            storageBucket: "dddsar-8b029.appspot.com",
+            messagingSenderId: "196034302648",
+            appId: "1:196034302648:web:841307c1d9dd68a9755a4d",
+            measurementId: "G-WBP2V7PCPN"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const defaultItems = [
+            { id: "item1", name: "تشيز كيك بالفراولة", desc: "طبقة بسكويت مقرمشة مع كريمة الجبن وغطاء الفراولة الطازجة", price: "12$", img: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=500&auto=format&fit=crop" },
+            { id: "item2", name: "كيكة الشوكولاتة الفاخرة", desc: "كيكة إسفنجية غنية بالشوكولاتة البلجيكية الداكنة", price: "15$", img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&auto=format&fit=crop" },
+            { id: "item3", name: "تارت الفواكه", desc: "عجينة تارت هشة محشوة بكاسترد الفانيليا ومزينة بالفواكه", price: "10$", img: "https://images.unsplash.com/photo-1519869325930-281384150729?w=500&auto=format&fit=crop" },
+            { id: "item4", name: "كنافة بالجبنة النابلسية", desc: "كنافة ذهبية مقرمشة محشوة بالجبنة الأصلية والقطر", price: "14$", img: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=500&auto=format&fit=crop" },
+            { id: "item5", name: "بقلاوة بالفستق الحلبي", desc: "رقائق عجينة رقيقة محشوة بأجود أنواع الفستق الحلبي", price: "16$", img: "https://images.unsplash.com/photo-1599785209707-a456fc1337bb?w=500&auto=format&fit=crop" },
+            { id: "item6", name: "تيراميسو إيطالي أصلي", desc: "أصابع البسكويت المغمسة بالإسبريسو وكريمة الماسكاربوني", price: "13$", img: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=500&auto=format&fit=crop" },
+            { id: "item7", name: "بانا كوتا بالفانيليا", desc: "حلوى إيطالية ناعمة وباردة تقدم مع صوص التوت البري", price: "11$", img: "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=500&auto=format&fit=crop" },
+            { id: "item8", name: "كريم بروليه", desc: "كريمة الفانيليا الغنية مع طبقة مقرمشة من السكر المكرمل", price: "12$", img: "https://images.unsplash.com/photo-1470124182917-cc6e71b22ecc?w=500&auto=format&fit=crop" },
+            { id: "item9", name: "وافل بلجيكي بالشوكولاتة", desc: "وافل طازج ومقرمش يزين بالشوكولاتة السائلة والفواكه", price: "10$", img: "https://images.unsplash.com/photo-1562376552-0d160a2f238d?w=500&auto=format&fit=crop" },
+            { id: "item10", name: "بان كيك أمريكي", desc: "طبقات بان كيك هشة مع العسل الطبيعي والزبدة", price: "9$", img: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=500&auto=format&fit=crop" },
+            { id: "item11", name: "ماكرون فرنسي مشكل", desc: "قطع الماكرون الفرنسية المقرمشة من الخارج والناعمة", price: "14$", img: "https://images.unsplash.com/photo-1569864358642-9d1684040f43?w=500&auto=format&fit=crop" },
+            { id: "item12", name: "سينابون رول بالكريمة", desc: "عجينة القرفة الطرية المغطاة بصوص جبنة الكريم والكراميل", price: "9$", img: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop" },
+            { id: "item13", name: "براوني الشوكولاتة", desc: "كيكة شوكولاتة غنية وكثيفة تقدم دافئة مع آيس كريم", price: "11$", img: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=500&auto=format&fit=crop" },
+            { id: "item14", name: "أم علي بالقشطة والمكسرات", desc: "رقائق المعجنات الساخنة بالحليب الطازج والمكسرات", price: "10$", img: "https://images.unsplash.com/photo-1541529086526-db283c563270?w=500&auto=format&fit=crop" },
+            { id: "item15", name: "مهلبية بالمستكة والفستق", desc: "حلوى شرقية تقليدية ناعمة ومعطرة بالمستكة ومزينة", price: "7$", img: "https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=500&auto=format&fit=crop" },
+            { id: "item16", name: "غزل البنات بالآيس كريم", desc: "غزل بنات فاخر محشو بكرات الآيس كريم الغنية", price: "12$", img: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=500&auto=format&fit=crop" },
+            { id: "item17", name: "كيكة العسل الروسية", desc: "طبقات رقيقة من الكيك المتبل بالعسل وكريمة الحليب", price: "15$", img: "https://images.unsplash.com/photo-1535141192574-5d4897c13136?w=500&auto=format&fit=crop" },
+            { id: "item18", name: "كرواسون محشو بالشوكلت", desc: "كرواسون فرنسي طازج ومقرمش محشو بشوكولاتة نوتيلا", price: "8$", img: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=500&auto=format&fit=crop" },
+            { id: "item19", name: "تشيز كيك لوتس", desc: "قاعدة من بسكويت اللوتس المقرمش مع كريمة الجبن", price: "13$", img: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?w=500&auto=format&fit=crop" },
+            { id: "item20", name: "آيس كريم الفانيليا الملكي", desc: "ثلاث كرات من آيس كريم الفانيليا الطبيعي مع الحبوب", price: "8$", img: "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=500&auto=format&fit=crop" }
+        ];
+
+        let loadedItems = [];
+        let cart = [];
+
+        // جلب البيانات من الـ Firebase
+        function fetchMenuFromFirebase() {
+            const grid = document.getElementById('menuGrid');
+            grid.innerHTML = '<p style="text-align:center; grid-column:1/-1; color:var(--primary); font-size:1.2rem;">جاري تحميل القائمة...</p>';
+
+            db.collection("menu").get().then((querySnapshot) => {
+                loadedItems = [];
+                querySnapshot.forEach((doc) => {
+                    loadedItems.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (loadedItems.length === 0) {
+                    const batch = db.batch();
+                    defaultItems.forEach(item => {
+                        let ref = db.collection("menu").doc(item.id);
+                        batch.set(ref, item);
+                    });
+                    batch.commit().then(() => {
+                        loadedItems = defaultItems;
+                        renderMenu(loadedItems);
+                    });
+                } else {
+                    renderMenu(loadedItems);
+                }
+            }).catch((error) => {
+                console.error("خطأ:", error);
+                grid.innerHTML = '<p style="text-align:center; grid-column:1/-1; color:red;">تعذر الاتصال بقاعدة البيانات.</p>';
+            });
+        }
+
+        function renderMenu(itemsArray) {
+            const grid = document.getElementById('menuGrid');
+            grid.innerHTML = '';
+            
+            itemsArray.forEach((item) => {
+                const card = document.createElement('div');
+                card.className = 'menu-card';
+                card.innerHTML = `
+                    <div class="card-img-wrapper">
+                        <img src="${item.img}" alt="${item.name}" loading="lazy">
+                    </div>
+                    <div class="card-content">
+                        <div>
+                            <div class="card-title">${item.name}</div>
+                            <div class="card-desc">${item.desc}</div>
+                        </div>
+                        <div class="card-footer-flex">
+                            <div class="card-price">${item.price}</div>
+                            <button class="add-to-cart-btn" onclick="addToCart('${item.id}')">
+                                <i class="fa-solid fa-plus"></i> إضافة
+                            </button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // وظائف السلة
+        function addToCart(itemId) {
+            const item = loadedItems.find(i => i.id === itemId);
+            if(item) {
+                const existing = cart.find(i => i.id === itemId);
+                if(existing) {
+                    existing.qty += 1;
+                } else {
+                    cart.push({ ...item, qty: 1 });
+                }
+                updateCartCount();
+                alert(`تمت إضافة "${item.name}" إلى السلة بنجاح!`);
+            }
+        }
+
+        function updateCartCount() {
+            const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+            document.getElementById('cartCount').innerText = totalQty;
+        }
+
+        function openCartModal() {
+            document.getElementById('cartModal').style.display = 'flex';
+            renderCartItems();
+        }
+
+        function closeCartModal() {
+            document.getElementById('cartModal').style.display = 'none';
+        }
+
+        function renderCartItems() {
+            const listContainer = document.getElementById('cartItemsList');
+            const cartFooter = document.getElementById('cartFooter');
+            
+            if(cart.length === 0) {
+                listContainer.innerHTML = '<p style="text-align:center; color:#94a3b8;">السلة فارغة حالياً</p>';
+                cartFooter.style.display = 'none';
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            let messageText = "مرحباً، أود طلب الأصناف التالية:\n\n";
+
+            cart.forEach((item, index) => {
+                listContainer.innerHTML += `
+                    <div class="cart-item-row">
+                        <span>${item.name} (العدد: ${item.qty})</span>
+                        <span style="color:var(--primary); font-weight:bold;">${item.price}</span>
+                    </div>
+                `;
+                messageText += `- ${item.name} | الكمية: ${item.qty} | السعر: ${item.price}\n`;
+            });
+
+            cartFooter.style.display = 'block';
+            
+            // استبدل الرقم أدناه برقم الواتساب الخاص بك مع رمز الدولة (مثال: 9639xxxxxxxx)
+            const whatsappNumber = "963911111111"; 
+            const encodedMessage = encodeURIComponent(messageText);
+            document.getElementById('whatsappBtn').href = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+        }
+
+        // وظائف الإدارة
+        function openAdminLogin() {
+            document.getElementById('adminModal').style.display = 'flex';
+            document.getElementById('password-section').style.display = 'block';
+            document.getElementById('edit-section').style.display = 'none';
+            document.getElementById('adminPassInput').value = '';
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').style.display = 'none';
+        }
+
+        function checkPassword() {
+            const pass = document.getElementById('adminPassInput').value;
+            if (pass === "1234") {
+                document.getElementById('password-section').style.display = 'none';
+                document.getElementById('edit-section').style.display = 'block';
+                renderAdminList();
+            } else {
+                alert("كلمة السر غير صحيحة!");
+            }
+        }
+
+        function renderAdminList() {
+            const listContainer = document.getElementById('adminItemsList');
+            listContainer.innerHTML = '';
+
+            loadedItems.forEach((item) => {
+                listContainer.innerHTML += `
+                    <div class="admin-item-row">
+                        <span>${item.name}</span>
+                        <input type="text" id="admin-price-${item.id}" value="${item.price}">
+                    </div>
+                `;
+            });
+        }
+
+        function savePrices() {
+            const btn = document.querySelector('#edit-section .save-changes-btn');
+            btn.innerText = "جاري الحفظ...";
+            
+            const batch = db.batch();
+            loadedItems.forEach((item) => {
+                const newPrice = document.getElementById(`admin-price-${item.id}`).value;
+                item.price = newPrice;
+                const ref = db.collection("menu").doc(item.id);
+                batch.update(ref, { price: newPrice });
+            });
+
+            batch.commit().then(() => {
+                renderMenu(loadedItems);
+                closeAdminModal();
+                btn.innerText = "حفظ التعديلات";
+                alert("تم تحديث الأسعار سحابياً بنجاح!");
+            }).catch((error) => {
+                console.error("خطأ:", error);
+                alert("حدث خطأ أثناء الحفظ.");
+                btn.innerText = "حفظ التعديلات";
+            });
+        }
+
+        window.onload = fetchMenuFromFirebase;
+    </script>
+</body>
+</html>
